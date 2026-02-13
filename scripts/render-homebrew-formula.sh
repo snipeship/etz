@@ -19,7 +19,14 @@ fi
 sha_for_target() {
   local target="$1"
   local file="etz-${VERSION}-${target}.tar.gz"
-  awk -v f="$file" '$2 == f { print $1 }' "$CHECKSUMS_FILE"
+  awk -v f="$file" '
+    {
+      n = split($2, parts, "/")
+      if ($2 == f || parts[n] == f) {
+        print $1
+      }
+    }
+  ' "$CHECKSUMS_FILE"
 }
 
 LINUX_SHA="$(sha_for_target "x86_64-unknown-linux-gnu")"

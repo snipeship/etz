@@ -2,6 +2,15 @@
 name = "etz"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
+description = "CLI for coordinating git worktrees across multi-repo parent directories."
+readme = "README.md"
+repository = "https://github.com/snipeship/etz"
+homepage = "https://github.com/snipeship/etz"
+documentation = "https://docs.rs/etz"
+license = "MIT"
+keywords = ["git", "cli", "worktree", "workspace", "monorepo"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 anyhow = "1.0.96"

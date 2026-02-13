@@ -1,0 +1,254 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  BINARY_NAME: etz
+  CARGO_TERM_COLOR: always
+  RELEASE_REPO: snipeship/etz
+  HOMEBREW_TAP_REPO: snipeship/homebrew-tap
+
+jobs:
+  verify-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: meta
+        name: Validate tag against Cargo version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_FROM_TAG="${GITHUB_REF_NAME#v}"
+          VERSION_FROM_CARGO="$(awk -F'"' '
+            $0 ~ /^\[package\]/ { in_pkg=1; next }
+            $0 ~ /^\[/ && in_pkg { in_pkg=0 }
+            in_pkg && $1 ~ /^version = / { print $2; exit }
+          ' Cargo.toml)"
+
+          if [ -z "$VERSION_FROM_CARGO" ]; then
+            echo "::error::Unable to parse [package].version from Cargo.toml"
+            exit 1
+          fi
+
+          if [ "$VERSION_FROM_TAG" != "$VERSION_FROM_CARGO" ]; then
+            echo "::error::Tag version v${VERSION_FROM_TAG} does not match Cargo.toml version ${VERSION_FROM_CARGO}"
+            exit 1
+          fi
+
+          echo "version=$VERSION_FROM_CARGO" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: verify-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test --locked
+
+  build:
+    needs: [verify-tag, test]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: macos-13
+            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build binary
+        shell: bash
+        run: cargo build --locked --release --target "${{ matrix.target }}"
+
+      - name: Package release tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.verify-tag.outputs.version }}"
+          ARCHIVE_NAME="${BINARY_NAME}-${VERSION}-${{ matrix.target }}.tar.gz"
+          mkdir -p dist
+          tar -C "target/${{ matrix.target }}/release" -czf "dist/${ARCHIVE_NAME}" "${BINARY_NAME}"
+          shasum -a 256 "dist/${ARCHIVE_NAME}" > "dist/SHA256SUMS-${{ matrix.target }}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: |
+            dist/*.tar.gz
+            dist/SHA256SUMS-${{ matrix.target }}
+          if-no-files-found: error
+
+  release:
+    needs: [verify-tag, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Assemble checksum manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat dist/SHA256SUMS-* | sort -k2 > dist/SHA256SUMS
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.verify-tag.outputs.version }}
+          generate_release_notes: true
+          files: |
+            dist/*.tar.gz
+            dist/SHA256SUMS
+
+  publish-cargo:
+    needs: [verify-tag, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - id: already-published
+        name: Check crates.io for existing version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.verify-tag.outputs.version }}"
+          STATUS="$(curl -sS -o /dev/null -w "%{http_code}" "https://crates.io/api/v1/crates/${BINARY_NAME}/${VERSION}")"
+          if [ "$STATUS" = "200" ]; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure crates.io token is configured
+        if: steps.already-published.outputs.published == 'false'
+        shell: bash
+        run: |
+          if [ -z "${CARGO_REGISTRY_TOKEN:-}" ]; then
+            echo "::error::Missing CARGO_REGISTRY_TOKEN secret"
+            exit 1
+          fi
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Publish crate
+        if: steps.already-published.outputs.published == 'false'
+        run: cargo publish --locked --token "${CARGO_REGISTRY_TOKEN}"
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  publish-homebrew:
+    needs: [verify-tag, release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure tap token is configured
+        shell: bash
+        run: |
+          if [ -z "${HOMEBREW_TAP_GITHUB_TOKEN:-}" ]; then
+            echo "::error::Missing HOMEBREW_TAP_GITHUB_TOKEN secret"
+            exit 1
+          fi
+        env:
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Assemble checksum manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat dist/SHA256SUMS-* | sort -k2 > dist/SHA256SUMS
+
+      - name: Render formula
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/render-homebrew-formula.sh \
+            "${{ needs.verify-tag.outputs.version }}" \
+            "${RELEASE_REPO}" \
+            "dist/SHA256SUMS" \
+            "etz.rb"
+
+      - name: Clone tap repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${HOMEBREW_TAP_GITHUB_TOKEN}@github.com/${HOMEBREW_TAP_REPO}.git" tap
+        env:
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+      - name: Copy formula into tap repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tap/Formula
+          cp etz.rb tap/Formula/etz.rb
+
+      - name: Commit and push tap update
+        shell: bash
+        working-directory: tap
+        run: |
+          set -euo pipefail
+
+          if [ -z "$(git status --porcelain -- Formula/etz.rb)" ]; then
+            echo "Formula already up-to-date."
+            exit 0
+          fi
+
+          DEFAULT_BRANCH="$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')"
+          if [ -z "$DEFAULT_BRANCH" ]; then
+            echo "::error::Unable to determine tap default branch"
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/etz.rb
+          git commit -m "etz ${{ needs.verify-tag.outputs.version }}"
+          git push origin "HEAD:${DEFAULT_BRANCH}"

@@ -45,6 +45,10 @@ It creates coordinated git worktrees under:
   - `.etz/manifest.lock.toml`
   - `.etz/state.toml`
 
+## Installation
+
+See `INSTALLATION.md` for all install options (Cargo, Homebrew, binaries, source build).
+
 ## Quick Start
 
 ```bash

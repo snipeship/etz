@@ -214,7 +214,13 @@ pub fn refresh_manifest(root: &Path, check_only: bool, json: bool) -> Result<()>
     Ok(())
 }
 
-pub fn add_workspace(root: &Path, workspace: &str, branch: &str, copy_root: bool) -> Result<()> {
+pub fn add_workspace(
+    root: &Path,
+    workspace: &str,
+    branch: &str,
+    from_current: bool,
+    copy_root: bool,
+) -> Result<()> {
     assert_workspace_name_valid(workspace)?;
     if branch.trim().is_empty() {
         bail!("branch cannot be empty");
@@ -279,7 +285,17 @@ pub fn add_workspace(root: &Path, workspace: &str, branch: &str, copy_root: bool
             );
         }
 
-        if let Err(err) = ensure_workspace_branch(&source_path, branch, &repo.default_branch) {
+        let base_branch = if from_current {
+            git::current_branch(&source_path)?
+                .ok_or_else(|| anyhow!(
+                    "repo '{}' is in detached HEAD; cannot use --from-current",
+                    repo.name
+                ))?
+        } else {
+            repo.default_branch.clone()
+        };
+
+        if let Err(err) = ensure_workspace_branch(&source_path, branch, &base_branch) {
             let rollback_errors = rollback_added_worktrees(&created_worktrees);
             fs::remove_dir_all(&workspace_root).ok();
             if rollback_errors.is_empty() {

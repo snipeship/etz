@@ -16,6 +16,9 @@ pub enum Commands {
         workspace: String,
         #[arg(long)]
         branch: String,
+        /// Base new branches on each repo's current branch instead of the manifest default
+        #[arg(long, default_value_t = false)]
+        from_current: bool,
         /// Do not copy non-repo root files/directories into the workspace root
         #[arg(long, default_value_t = false)]
         no_copy_root: bool,

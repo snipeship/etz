@@ -97,7 +97,7 @@ fn init_and_add_workspace_creates_worktrees() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-one", "feat-one", true).unwrap();
+    ops::add_workspace(root, "feat-one", "feat-one", false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-one/a");
     let b_worktree = root.join(".etz/workspaces/feat-one/b");
@@ -132,7 +132,7 @@ fn add_workspace_rolls_back_if_a_repo_fails() {
     manifest.repos[1].path = "missing-repo".to_string();
     save_manifest(&paths, &manifest).unwrap();
 
-    let err = ops::add_workspace(root, "feat-two", "feat-two", true).unwrap_err();
+    let err = ops::add_workspace(root, "feat-two", "feat-two", false, true).unwrap_err();
     assert!(
         err.to_string().contains("source repo") || err.to_string().contains("failed"),
         "unexpected error: {err}"
@@ -150,7 +150,7 @@ fn commit_commits_only_candidate_repos() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-commit", "feat-commit", true).unwrap();
+    ops::add_workspace(root, "feat-commit", "feat-commit", false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-commit/a");
     let b_worktree = root.join(".etz/workspaces/feat-commit/b");
@@ -181,7 +181,7 @@ fn commit_auto_stages_tracked_changes_when_none_are_staged() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-smart", "feat-smart", true).unwrap();
+    ops::add_workspace(root, "feat-smart", "feat-smart", false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-smart/a");
     let b_worktree = root.join(".etz/workspaces/feat-smart/b");
@@ -211,7 +211,7 @@ fn commit_all_stages_untracked_files() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-all", "feat-all", true).unwrap();
+    ops::add_workspace(root, "feat-all", "feat-all", false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-all/a");
     let b_worktree = root.join(".etz/workspaces/feat-all/b");
@@ -248,7 +248,7 @@ fn commit_rolls_back_previous_commits_if_later_repo_fails() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-rb", "feat-rb", true).unwrap();
+    ops::add_workspace(root, "feat-rb", "feat-rb", false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-rb/a");
     let b_worktree = root.join(".etz/workspaces/feat-rb/b");
@@ -297,7 +297,7 @@ fn remove_workspace_cleans_state_and_paths() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-remove", "feat-remove", true).unwrap();
+    ops::add_workspace(root, "feat-remove", "feat-remove", false, true).unwrap();
 
     let workspace_root = root.join(".etz/workspaces/feat-remove");
     assert!(workspace_root.exists());
@@ -321,7 +321,7 @@ fn add_workspace_copies_root_files_by_default() {
     fs::write(root.join("shared/context.txt"), "shared context\n").unwrap();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-copy", "feat-copy", true).unwrap();
+    ops::add_workspace(root, "feat-copy", "feat-copy", false, true).unwrap();
 
     let workspace_root = root.join(".etz/workspaces/feat-copy");
     assert_eq!(
@@ -344,7 +344,7 @@ fn add_workspace_can_disable_root_file_copy() {
     fs::write(root.join("shared/context.txt"), "shared context\n").unwrap();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-nocopy", "feat-nocopy", false).unwrap();
+    ops::add_workspace(root, "feat-nocopy", "feat-nocopy", false, false).unwrap();
 
     let workspace_root = root.join(".etz/workspaces/feat-nocopy");
     assert!(!workspace_root.join("AGENTS.md").exists());
@@ -405,7 +405,7 @@ fn add_workspace_respects_copy_rules() {
     fs::write(root.join(".etzignore"), "shared/private/**\n").unwrap();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-rules", "feat-rules", true).unwrap();
+    ops::add_workspace(root, "feat-rules", "feat-rules", false, true).unwrap();
 
     let workspace_root = root.join(".etz/workspaces/feat-rules");
     assert!(workspace_root.join("AGENTS.md").exists());
@@ -422,7 +422,7 @@ fn status_changed_and_summary_flags_work() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-status-flags", "feat-status-flags", true).unwrap();
+    ops::add_workspace(root, "feat-status-flags", "feat-status-flags", false, true).unwrap();
 
     let repo_a = root.join(".etz/workspaces/feat-status-flags/a");
     fs::write(repo_a.join("README.md"), "changed\n").unwrap();
@@ -445,7 +445,7 @@ fn doctor_fix_removes_missing_worktree_entries() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-doctor-fix", "feat-doctor-fix", true).unwrap();
+    ops::add_workspace(root, "feat-doctor-fix", "feat-doctor-fix", false, true).unwrap();
 
     let missing = root.join(".etz/workspaces/feat-doctor-fix/a");
     fs::remove_dir_all(&missing).unwrap();
@@ -465,7 +465,7 @@ fn commit_dry_run_does_not_mutate_repos() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-dry", "feat-dry", true).unwrap();
+    ops::add_workspace(root, "feat-dry", "feat-dry", false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-dry/a");
     fs::write(a_worktree.join("README.md"), "dry-run update\n").unwrap();
@@ -486,7 +486,7 @@ fn infer_workspace_from_nested_workspace_path() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-infer", "feat-infer", true).unwrap();
+    ops::add_workspace(root, "feat-infer", "feat-infer", false, true).unwrap();
 
     let nested_path = root.join(".etz/workspaces/feat-infer/a/src");
     fs::create_dir_all(&nested_path).unwrap();
@@ -501,7 +501,7 @@ fn find_etz_root_from_workspace_subpath() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-root", "feat-root", true).unwrap();
+    ops::add_workspace(root, "feat-root", "feat-root", false, true).unwrap();
 
     let nested_path = root.join(".etz/workspaces/feat-root/a");
     let found = find_etz_root(&nested_path).unwrap();
@@ -514,7 +514,7 @@ fn status_command_infers_workspace_when_called_inside_workspace() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-status", "feat-status", true).unwrap();
+    ops::add_workspace(root, "feat-status", "feat-status", false, true).unwrap();
 
     let inside_workspace = root.join(".etz/workspaces/feat-status/a");
     let (ok, stdout, stderr) = run_etz(&inside_workspace, &["status"]);
@@ -534,7 +534,7 @@ fn commit_command_infers_workspace_when_called_inside_workspace() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-commit-infer", "feat-commit-infer", true).unwrap();
+    ops::add_workspace(root, "feat-commit-infer", "feat-commit-infer", false, true).unwrap();
 
     let repo_a = root.join(".etz/workspaces/feat-commit-infer/a");
     fs::write(repo_a.join("README.md"), "commit infer\n").unwrap();

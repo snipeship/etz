@@ -20,8 +20,15 @@ pub fn run(cli: Cli, root: &Path) -> Result<()> {
         Commands::Add {
             workspace,
             branch,
+            from_current,
             no_copy_root,
-        } => ops::add_workspace(&resolved_root, &workspace, &branch, !no_copy_root),
+        } => ops::add_workspace(
+            &resolved_root,
+            &workspace,
+            &branch,
+            from_current,
+            !no_copy_root,
+        ),
         Commands::List => ops::list_workspaces(&resolved_root),
         Commands::Refresh { check, json } => ops::refresh_manifest(&resolved_root, check, json),
         Commands::Status {

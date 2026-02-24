@@ -219,6 +219,7 @@ pub fn add_workspace(
     workspace: &str,
     branch: &str,
     from_current: bool,
+    copy_env: bool,
     copy_root: bool,
 ) -> Result<()> {
     assert_workspace_name_valid(workspace)?;
@@ -389,6 +390,10 @@ pub fn add_workspace(
             );
         }
 
+        if copy_env {
+            copy_env_files(&source_path, &worktree_path)?;
+        }
+
         created_worktrees.push((
             repo.name.clone(),
             source_path.clone(),
@@ -485,6 +490,41 @@ fn ensure_workspace_branch(repo_path: &Path, branch: &str, default_branch: &str)
     }
 
     git::git_ok(repo_path, ["branch", branch, default_branch])?;
+    Ok(())
+}
+
+fn copy_env_files(source: &Path, worktree: &Path) -> Result<()> {
+    let entries =
+        fs::read_dir(source).with_context(|| format!("failed to read {}", source.display()))?;
+
+    for entry in entries {
+        let entry = entry?;
+        let name = entry.file_name();
+        let name_str = name.to_string_lossy();
+
+        if !name_str.starts_with(".env") {
+            continue;
+        }
+
+        let meta = entry.metadata()?;
+        if !meta.is_file() {
+            continue;
+        }
+
+        let target = worktree.join(&name);
+        if target.exists() {
+            continue;
+        }
+
+        fs::copy(entry.path(), &target).with_context(|| {
+            format!(
+                "failed to copy {} to {}",
+                entry.path().display(),
+                target.display()
+            )
+        })?;
+    }
+
     Ok(())
 }
 

@@ -12,13 +12,20 @@ pub enum Commands {
     /// Initialize .etz metadata in the current directory
     Init,
     /// Add a coordinated workspace backed by git worktrees
+    ///
+    /// By default, new branches are created from each repo's default branch
+    /// (main/master). Use --from-current to branch from whatever is currently
+    /// checked out instead.
     Add {
         workspace: String,
         #[arg(long)]
         branch: String,
-        /// Base new branches on each repo's current branch instead of the manifest default
+        /// Branch from each repo's currently checked-out branch instead of its default (main/master)
         #[arg(long, default_value_t = false)]
         from_current: bool,
+        /// Copy .env* files from each source repo into its worktree
+        #[arg(long, default_value_t = false)]
+        copy_env: bool,
         /// Do not copy non-repo root files/directories into the workspace root
         #[arg(long, default_value_t = false)]
         no_copy_root: bool,

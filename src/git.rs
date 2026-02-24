@@ -71,6 +71,13 @@ pub fn is_git_repo(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+/// Detect the repo's default (trunk) branch.
+///
+/// Priority:
+/// 1. `origin/HEAD` symbolic ref — the remote's declared default
+/// 2. Local or remote `main` / `master` — conventional trunk names
+/// 3. Currently checked-out branch — last resort fallback
+/// 4. Hard fallback to `"main"`
 pub fn detect_default_branch(repo: &Path) -> Result<String> {
     if let Ok(head) = git_ok(
         repo,
@@ -87,15 +94,15 @@ pub fn detect_default_branch(repo: &Path) -> Result<String> {
         }
     }
 
-    if let Ok(branch) = current_branch(repo) {
-        if let Some(branch) = branch {
-            return Ok(branch);
-        }
-    }
-
     for candidate in ["main", "master"] {
         if branch_exists_local(repo, candidate)? || branch_exists_remote(repo, candidate)? {
             return Ok(candidate.to_string());
+        }
+    }
+
+    if let Ok(branch) = current_branch(repo) {
+        if let Some(branch) = branch {
+            return Ok(branch);
         }
     }
 

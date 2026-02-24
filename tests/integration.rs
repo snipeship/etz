@@ -97,7 +97,7 @@ fn init_and_add_workspace_creates_worktrees() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-one", "feat-one", false, true).unwrap();
+    ops::add_workspace(root,"feat-one", "feat-one", false, false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-one/a");
     let b_worktree = root.join(".etz/workspaces/feat-one/b");
@@ -132,7 +132,7 @@ fn add_workspace_rolls_back_if_a_repo_fails() {
     manifest.repos[1].path = "missing-repo".to_string();
     save_manifest(&paths, &manifest).unwrap();
 
-    let err = ops::add_workspace(root, "feat-two", "feat-two", false, true).unwrap_err();
+    let err = ops::add_workspace(root,"feat-two", "feat-two", false, false, true).unwrap_err();
     assert!(
         err.to_string().contains("source repo") || err.to_string().contains("failed"),
         "unexpected error: {err}"
@@ -150,7 +150,7 @@ fn commit_commits_only_candidate_repos() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-commit", "feat-commit", false, true).unwrap();
+    ops::add_workspace(root,"feat-commit", "feat-commit", false, false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-commit/a");
     let b_worktree = root.join(".etz/workspaces/feat-commit/b");
@@ -181,7 +181,7 @@ fn commit_auto_stages_tracked_changes_when_none_are_staged() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-smart", "feat-smart", false, true).unwrap();
+    ops::add_workspace(root,"feat-smart", "feat-smart", false, false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-smart/a");
     let b_worktree = root.join(".etz/workspaces/feat-smart/b");
@@ -211,7 +211,7 @@ fn commit_all_stages_untracked_files() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-all", "feat-all", false, true).unwrap();
+    ops::add_workspace(root,"feat-all", "feat-all", false, false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-all/a");
     let b_worktree = root.join(".etz/workspaces/feat-all/b");
@@ -248,7 +248,7 @@ fn commit_rolls_back_previous_commits_if_later_repo_fails() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-rb", "feat-rb", false, true).unwrap();
+    ops::add_workspace(root,"feat-rb", "feat-rb", false, false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-rb/a");
     let b_worktree = root.join(".etz/workspaces/feat-rb/b");
@@ -297,7 +297,7 @@ fn remove_workspace_cleans_state_and_paths() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-remove", "feat-remove", false, true).unwrap();
+    ops::add_workspace(root,"feat-remove", "feat-remove", false, false, true).unwrap();
 
     let workspace_root = root.join(".etz/workspaces/feat-remove");
     assert!(workspace_root.exists());
@@ -321,7 +321,7 @@ fn add_workspace_copies_root_files_by_default() {
     fs::write(root.join("shared/context.txt"), "shared context\n").unwrap();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-copy", "feat-copy", false, true).unwrap();
+    ops::add_workspace(root,"feat-copy", "feat-copy", false, false, true).unwrap();
 
     let workspace_root = root.join(".etz/workspaces/feat-copy");
     assert_eq!(
@@ -344,7 +344,7 @@ fn add_workspace_can_disable_root_file_copy() {
     fs::write(root.join("shared/context.txt"), "shared context\n").unwrap();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-nocopy", "feat-nocopy", false, false).unwrap();
+    ops::add_workspace(root,"feat-nocopy", "feat-nocopy", false, false, false).unwrap();
 
     let workspace_root = root.join(".etz/workspaces/feat-nocopy");
     assert!(!workspace_root.join("AGENTS.md").exists());
@@ -405,7 +405,7 @@ fn add_workspace_respects_copy_rules() {
     fs::write(root.join(".etzignore"), "shared/private/**\n").unwrap();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-rules", "feat-rules", false, true).unwrap();
+    ops::add_workspace(root,"feat-rules", "feat-rules", false, false, true).unwrap();
 
     let workspace_root = root.join(".etz/workspaces/feat-rules");
     assert!(workspace_root.join("AGENTS.md").exists());
@@ -422,7 +422,7 @@ fn status_changed_and_summary_flags_work() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-status-flags", "feat-status-flags", false, true).unwrap();
+    ops::add_workspace(root,"feat-status-flags", "feat-status-flags", false, false, true).unwrap();
 
     let repo_a = root.join(".etz/workspaces/feat-status-flags/a");
     fs::write(repo_a.join("README.md"), "changed\n").unwrap();
@@ -445,7 +445,7 @@ fn doctor_fix_removes_missing_worktree_entries() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-doctor-fix", "feat-doctor-fix", false, true).unwrap();
+    ops::add_workspace(root,"feat-doctor-fix", "feat-doctor-fix", false, false, true).unwrap();
 
     let missing = root.join(".etz/workspaces/feat-doctor-fix/a");
     fs::remove_dir_all(&missing).unwrap();
@@ -465,7 +465,7 @@ fn commit_dry_run_does_not_mutate_repos() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-dry", "feat-dry", false, true).unwrap();
+    ops::add_workspace(root,"feat-dry", "feat-dry", false, false, true).unwrap();
 
     let a_worktree = root.join(".etz/workspaces/feat-dry/a");
     fs::write(a_worktree.join("README.md"), "dry-run update\n").unwrap();
@@ -486,7 +486,7 @@ fn infer_workspace_from_nested_workspace_path() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-infer", "feat-infer", false, true).unwrap();
+    ops::add_workspace(root,"feat-infer", "feat-infer", false, false, true).unwrap();
 
     let nested_path = root.join(".etz/workspaces/feat-infer/a/src");
     fs::create_dir_all(&nested_path).unwrap();
@@ -501,7 +501,7 @@ fn find_etz_root_from_workspace_subpath() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-root", "feat-root", false, true).unwrap();
+    ops::add_workspace(root,"feat-root", "feat-root", false, false, true).unwrap();
 
     let nested_path = root.join(".etz/workspaces/feat-root/a");
     let found = find_etz_root(&nested_path).unwrap();
@@ -514,7 +514,7 @@ fn status_command_infers_workspace_when_called_inside_workspace() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-status", "feat-status", false, true).unwrap();
+    ops::add_workspace(root,"feat-status", "feat-status", false, false, true).unwrap();
 
     let inside_workspace = root.join(".etz/workspaces/feat-status/a");
     let (ok, stdout, stderr) = run_etz(&inside_workspace, &["status"]);
@@ -534,7 +534,7 @@ fn commit_command_infers_workspace_when_called_inside_workspace() {
     let root = temp.path();
 
     ops::init(root).unwrap();
-    ops::add_workspace(root, "feat-commit-infer", "feat-commit-infer", false, true).unwrap();
+    ops::add_workspace(root,"feat-commit-infer", "feat-commit-infer", false, false, true).unwrap();
 
     let repo_a = root.join(".etz/workspaces/feat-commit-infer/a");
     fs::write(repo_a.join("README.md"), "commit infer\n").unwrap();
@@ -544,4 +544,170 @@ fn commit_command_infers_workspace_when_called_inside_workspace() {
 
     let head = git(&repo_a, &["log", "-1", "--pretty=%s"]);
     assert_eq!(head, "feat: infer workspace");
+}
+
+#[test]
+fn add_workspace_from_current_bases_branch_on_checked_out_branch() {
+    let temp = setup_two_repo_root();
+    let root = temp.path();
+
+    // Put repo "a" on a non-default branch with an extra commit
+    let repo_a = root.join("a");
+    git(&repo_a, &["checkout", "-b", "develop"]);
+    fs::write(repo_a.join("dev.txt"), "develop work\n").unwrap();
+    git(&repo_a, &["add", "dev.txt"]);
+    git(&repo_a, &["commit", "-m", "develop commit"]);
+
+    // Repo "b" stays on main
+    ops::init(root).unwrap();
+    ops::add_workspace(root, "feat-from-current", "feat-from-current", true, false, true).unwrap();
+
+    let a_worktree = root.join(".etz/workspaces/feat-from-current/a");
+    let b_worktree = root.join(".etz/workspaces/feat-from-current/b");
+
+    // Both worktrees should be on the new branch
+    assert_eq!(
+        git(&a_worktree, &["rev-parse", "--abbrev-ref", "HEAD"]),
+        "feat-from-current"
+    );
+    assert_eq!(
+        git(&b_worktree, &["rev-parse", "--abbrev-ref", "HEAD"]),
+        "feat-from-current"
+    );
+
+    // Repo a's worktree should have the develop commit (branched from develop)
+    let a_log = git(&a_worktree, &["log", "--oneline"]);
+    assert!(
+        a_log.contains("develop commit"),
+        "expected worktree a to contain develop commit, got: {a_log}"
+    );
+
+    // Repo a's worktree should also have dev.txt from develop
+    assert!(
+        a_worktree.join("dev.txt").exists(),
+        "expected dev.txt from develop branch in worktree a"
+    );
+
+    // Repo b was on main, so its worktree should NOT have dev.txt
+    assert!(
+        !b_worktree.join("dev.txt").exists(),
+        "expected b worktree to not have dev.txt"
+    );
+}
+
+#[test]
+fn add_workspace_from_current_without_flag_uses_manifest_default() {
+    let temp = setup_two_repo_root();
+    let root = temp.path();
+
+    // Init while repos are on main so default_branch is recorded as main
+    ops::init(root).unwrap();
+
+    // Now switch repo "a" to develop and add an extra commit
+    let repo_a = root.join("a");
+    git(&repo_a, &["checkout", "-b", "develop"]);
+    fs::write(repo_a.join("dev.txt"), "develop work\n").unwrap();
+    git(&repo_a, &["add", "dev.txt"]);
+    git(&repo_a, &["commit", "-m", "develop commit"]);
+
+    // from_current=false: should base on manifest default_branch (main), not develop
+    ops::add_workspace(root, "feat-no-current", "feat-no-current", false, false, true).unwrap();
+
+    let a_worktree = root.join(".etz/workspaces/feat-no-current/a");
+
+    // Worktree should NOT have the develop-only commit
+    let a_log = git(&a_worktree, &["log", "--oneline"]);
+    assert!(
+        !a_log.contains("develop commit"),
+        "expected worktree a to NOT contain develop commit, got: {a_log}"
+    );
+    assert!(
+        !a_worktree.join("dev.txt").exists(),
+        "expected dev.txt to NOT exist (branched from main, not develop)"
+    );
+}
+
+#[test]
+fn copy_env_copies_dotenv_files_into_worktrees() {
+    let temp = setup_two_repo_root();
+    let root = temp.path();
+
+    // Create .env files in source repos (these are typically gitignored)
+    let repo_a = root.join("a");
+    let repo_b = root.join("b");
+    fs::write(repo_a.join(".env"), "SECRET_A=123\n").unwrap();
+    fs::write(repo_a.join(".env.local"), "LOCAL_A=456\n").unwrap();
+    fs::write(repo_b.join(".env"), "SECRET_B=789\n").unwrap();
+    fs::write(repo_b.join(".env.production"), "PROD_B=abc\n").unwrap();
+
+    ops::init(root).unwrap();
+    ops::add_workspace(root, "feat-env", "feat-env", false, true, true).unwrap();
+
+    let a_worktree = root.join(".etz/workspaces/feat-env/a");
+    let b_worktree = root.join(".etz/workspaces/feat-env/b");
+
+    assert_eq!(
+        fs::read_to_string(a_worktree.join(".env")).unwrap(),
+        "SECRET_A=123\n"
+    );
+    assert_eq!(
+        fs::read_to_string(a_worktree.join(".env.local")).unwrap(),
+        "LOCAL_A=456\n"
+    );
+    assert_eq!(
+        fs::read_to_string(b_worktree.join(".env")).unwrap(),
+        "SECRET_B=789\n"
+    );
+    assert_eq!(
+        fs::read_to_string(b_worktree.join(".env.production")).unwrap(),
+        "PROD_B=abc\n"
+    );
+}
+
+#[test]
+fn copy_env_does_not_copy_without_flag() {
+    let temp = setup_two_repo_root();
+    let root = temp.path();
+
+    let repo_a = root.join("a");
+    fs::write(repo_a.join(".env"), "SECRET=123\n").unwrap();
+
+    ops::init(root).unwrap();
+    // copy_env=false
+    ops::add_workspace(root, "feat-no-env", "feat-no-env", false, false, true).unwrap();
+
+    let a_worktree = root.join(".etz/workspaces/feat-no-env/a");
+    assert!(
+        !a_worktree.join(".env").exists(),
+        "expected .env to NOT be copied without --copy-env"
+    );
+}
+
+#[test]
+fn copy_env_skips_non_file_entries_and_non_dotenv_files() {
+    let temp = setup_two_repo_root();
+    let root = temp.path();
+
+    let repo_a = root.join("a");
+    // .env file (should be copied)
+    fs::write(repo_a.join(".env"), "KEY=val\n").unwrap();
+    // .env-prefixed directory (should NOT be copied)
+    fs::create_dir_all(repo_a.join(".env-dir")).unwrap();
+    fs::write(repo_a.join(".env-dir/nested"), "nested\n").unwrap();
+    // Non-.env dotfile (should NOT be copied)
+    fs::write(repo_a.join(".eslintrc"), "lint\n").unwrap();
+
+    ops::init(root).unwrap();
+    ops::add_workspace(root, "feat-env-filter", "feat-env-filter", false, true, true).unwrap();
+
+    let a_worktree = root.join(".etz/workspaces/feat-env-filter/a");
+    assert!(a_worktree.join(".env").exists(), "expected .env to be copied");
+    assert!(
+        !a_worktree.join(".env-dir").exists(),
+        "expected .env-dir directory to NOT be copied"
+    );
+    assert!(
+        !a_worktree.join(".eslintrc").exists(),
+        "expected .eslintrc to NOT be copied"
+    );
 }
